@@ -36,3 +36,6 @@ yarn-error.log*
 
 # vercel
 .vercel
+
+# claude code (로컬 설정 — 개인 허용 목록이라 공유하지 않는다)
+.claude/settings.local.json
