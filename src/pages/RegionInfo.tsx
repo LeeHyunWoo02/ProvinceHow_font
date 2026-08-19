@@ -9,27 +9,14 @@ import {
 } from 'utils'
 import { useComparison } from 'state/comparisonStore'
 import { useRecommendationFilters } from 'state/recommendationFilters'
-import type { RegionDetail } from 'types/search'
-import type { CodeItem } from 'utils'
+import { normalizeUrl } from 'shared/lib/url'
 import RegionDrilldown from 'components/RegionDrilldown'
 import RegionPreviewMap from 'components/RegionPreviewMap'
 import LoadingIndicator from 'components/LoadingIndicator'
-
-function normalizeUrl(raw?: string | null) {
-  if (!raw) return ''
-  const trimmed = raw.trim()
-  if (!trimmed) return ''
-  const sanitized = trimmed.replace(/\s+/g, '')
-  if (!sanitized) return ''
-  const lower = sanitized.toLowerCase()
-  if (/^(javascript|data|vbscript|file|blob):/.test(lower)) return ''
-  if (/^https?:\/\//i.test(sanitized)) return sanitized
-  if (/^\/\//.test(sanitized)) return `https:${sanitized}`
-  if (/^[\w.-]+(\.[\w.-]+)+(:\d+)?(\/.*)?$/i.test(sanitized)) {
-    return `https://${sanitized}`
-  }
-  return ''
-}
+import JobVacancyList from 'features/region/components/JobVacancyList'
+import RegionJobProfileSummary from 'features/region/components/RegionJobProfileSummary'
+import type { RegionDetail } from 'types/search'
+import type { CodeItem } from 'utils'
 
 export default function RegionInfo() {
   const [params] = useSearchParams()
@@ -407,6 +394,11 @@ export default function RegionInfo() {
           </div>
         </section>
       )}
+
+      <RegionJobProfileSummary profile={data.regionJobProfile} />
+
+      {/* 지역이 바뀌면 더보기로 늘린 노출 개수를 초기화하기 위해 key로 remount한다 */}
+      <JobVacancyList key={data.sigunguCode} vacancies={data.jobVacancies} />
 
       {/* 지원정책 리스트 */}
       <section className="space-y-3">
