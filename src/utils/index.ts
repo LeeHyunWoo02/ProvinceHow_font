@@ -24,8 +24,12 @@ export interface RecommendationParams {
   infraImportance: 'LOW' | 'MID' | 'HIGH'
   midJobCode?: string
   supportTag?: string
-  infraChoice?: number
-  supportChoice?: number
+  /**
+   * 서버가 필수로 요구한다. 둘 중 하나라도 빠지면 400 BIND_FAILED가 난다.
+   * 선택한 항목이 없을 때도 생략하지 말고 비트마스크 0을 보낸다.
+   */
+  infraChoice: number
+  supportChoice: number
 }
 
 /**
@@ -194,7 +198,12 @@ function legacyToRecommendationParams(
     dwellingType,
     price,
     infraImportance,
-    supportTag: supportTagName ? legacySupportTagMap[supportTagName] : undefined
+    supportTag: supportTagName
+      ? legacySupportTagMap[supportTagName]
+      : undefined,
+    // 레거시 필터에는 대응하는 선택값이 없으므로 "선택 없음"을 뜻하는 0을 보낸다.
+    infraChoice: 0,
+    supportChoice: 0
   }
 }
 
@@ -525,14 +534,8 @@ export async function fetchRecommendations(
     dwellingType: normalizedFilters.dwellingType,
     price: normalizedFilters.price,
     infraImportance: normalizedFilters.infraImportance,
-    infraChoice:
-      typeof normalizedFilters.infraChoice === 'number'
-        ? normalizedFilters.infraChoice
-        : undefined,
-    supportChoice:
-      typeof normalizedFilters.supportChoice === 'number'
-        ? normalizedFilters.supportChoice
-        : undefined,
+    infraChoice: normalizedFilters.infraChoice,
+    supportChoice: normalizedFilters.supportChoice,
     aiUse: 'true'
   })
 
