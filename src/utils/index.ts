@@ -5,6 +5,9 @@ import type {
   RegionDetailInfraItem,
   RegionDetailSupportItem,
   JobInfo,
+  JobVacancy,
+  JobIndustryShare,
+  RegionJobProfile,
   DwellingSimpleInfo,
   AiPickRecommendation
 } from 'types/search'
@@ -268,6 +271,83 @@ function toSupportItems(list: unknown): RegionDetailSupportItem[] {
   return items
 }
 
+function toTrimmedString(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : ''
+}
+
+const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
+
+function toIsoDate(value: unknown): string | null {
+  const text = toTrimmedString(value)
+  return ISO_DATE_PATTERN.test(text) ? text : null
+}
+
+function toJobVacancies(list: unknown): JobVacancy[] {
+  if (!Array.isArray(list)) return []
+
+  const seenPostingIds = new Set<string>()
+  return list
+    .map((raw): JobVacancy | null => {
+      const record = toRecord(raw)
+      if (!record) return null
+      const postingId = toTrimmedString(record.postingId)
+      // postingId가 리스트 key이자 중복 판정 기준이므로 없는 항목은 버린다
+      if (!postingId || seenPostingIds.has(postingId)) return null
+      seenPostingIds.add(postingId)
+
+      return {
+        postingId,
+        title: toTrimmedString(record.title),
+        companyName: toTrimmedString(record.companyName),
+        detailUrl: toTrimmedString(record.detailUrl),
+        regionName: toTrimmedString(record.regionName),
+        jobName: toTrimmedString(record.jobName),
+        salaryText: toTrimmedString(record.salaryText),
+        experienceText: toTrimmedString(record.experienceText),
+        educationText: toTrimmedString(record.educationText),
+        employmentType: toTrimmedString(record.employmentType),
+        active: typeof record.active === 'boolean' ? record.active : null,
+        postingDate: toIsoDate(record.postingDate),
+        expirationDate: toIsoDate(record.expirationDate)
+      }
+    })
+    .filter((entry): entry is JobVacancy => entry !== null)
+}
+
+function toIndustryShares(list: unknown): JobIndustryShare[] {
+  if (!Array.isArray(list)) return []
+
+  return list
+    .map((raw): JobIndustryShare | null => {
+      const record = toRecord(raw)
+      if (!record) return null
+      const name = toTrimmedString(record.name)
+      const count = toNullableNumber(record.count)
+      if (!name || count === null || count <= 0) return null
+      return { name, count }
+    })
+    .filter((entry): entry is JobIndustryShare => entry !== null)
+}
+
+function toRegionJobProfile(data: unknown): RegionJobProfile | null {
+  const record = toRecord(data)
+  if (!record) return null
+
+  const newcomerRatio = toNullableNumber(record.newcomerRatio)
+
+  return {
+    salaryMedianManwon: toNullableNumber(record.salaryMedianManwon),
+    // 0~1 실수 계약을 벗어난 값은 비율로 해석할 수 없으므로 값 없음으로 본다
+    newcomerRatio:
+      newcomerRatio !== null && newcomerRatio >= 0 && newcomerRatio <= 1
+        ? newcomerRatio
+        : null,
+    topIndustries: toIndustryShares(record.topIndustries),
+    sampleSize: toNullableNumber(record.sampleSize) ?? 0,
+    salaryParsedCount: toNullableNumber(record.salaryParsedCount) ?? 0
+  }
+}
+
 function mapRecommendationResponse(payload: unknown): RegionRecommendation {
   const source = toRecord(payload) ?? {}
   const dwellingSimple = toDwellingSimpleInfo(source.dwellingSimpleInfo)
@@ -414,7 +494,9 @@ function mapDetailResponse(payload: unknown): RegionDetail {
     dwellingInfo,
     infra: infraDetails,
     infraDetails,
-    infraMajors
+    infraMajors,
+    jobVacancies: toJobVacancies(source.jobVacancies),
+    regionJobProfile: toRegionJobProfile(source.regionJobProfile)
   }
 }
 
@@ -564,4 +646,8 @@ export function formatKRW(value: number): string {
 
 export function formatKRWMan(value: number): string {
   return `${formatNumberComma(value)}만원`
+}
+
+export function formatRatioPercent(value: number): string {
+  return `${Math.round(value * 100)}%`
 }
