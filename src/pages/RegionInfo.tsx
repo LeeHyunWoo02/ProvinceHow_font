@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
+
 import {
   ApiError,
   fetchRegionDetail,
@@ -13,8 +14,10 @@ import { normalizeUrl } from 'shared/lib/url'
 import RegionDrilldown from 'components/RegionDrilldown'
 import RegionPreviewMap from 'components/RegionPreviewMap'
 import LoadingIndicator from 'components/LoadingIndicator'
+
 import JobVacancyList from 'features/region/components/JobVacancyList'
 import RegionJobProfileSummary from 'features/region/components/RegionJobProfileSummary'
+
 import type { RegionDetail } from 'types/search'
 import type { CodeItem } from 'utils'
 
@@ -397,8 +400,11 @@ export default function RegionInfo() {
 
       <RegionJobProfileSummary profile={data.regionJobProfile} />
 
-      {/* 지역이 바뀌면 더보기로 늘린 노출 개수를 초기화하기 위해 key로 remount한다 */}
-      <JobVacancyList key={data.sigunguCode} vacancies={data.jobVacancies} />
+      {/* 지역이나 직종이 바뀌면 더보기로 늘린 노출 개수를 초기화하기 위해 key로 remount한다 */}
+      <JobVacancyList
+        key={`${data.sigunguCode}-${jobCode ?? ''}`}
+        vacancies={data.jobVacancies}
+      />
 
       {/* 지원정책 리스트 */}
       <section className="space-y-3">

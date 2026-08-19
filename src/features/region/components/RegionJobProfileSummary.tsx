@@ -1,4 +1,5 @@
 import { formatKRWMan, formatNumberComma, formatRatioPercent } from 'utils'
+
 import type { RegionJobProfile } from 'types/search'
 
 /** 이 수치 미만이면 통계로 보기 어려워 참고용이라고 안내한다. */
@@ -74,9 +75,9 @@ export default function RegionJobProfileSummary({
                 <p className="mt-1 text-2xl font-semibold tabular-nums text-gray-900">
                   {formatRatioPercent(newcomerRatio)}
                 </p>
+                {/* 바로 위 문단이 같은 수치를 읽어주므로 막대는 장식으로 둔다 */}
                 <div
-                  role="img"
-                  aria-label={`신입 채용 비율 ${newcomerPercent}%`}
+                  aria-hidden="true"
                   className="mt-2 h-2 w-full overflow-hidden rounded-full bg-gray-200"
                 >
                   {/* 채움 폭은 런타임 계산값이라 인라인 style로만 표현할 수 있다 */}
@@ -101,9 +102,12 @@ export default function RegionJobProfileSummary({
                   maxIndustryCount > 0
                     ? Math.round((industry.count / maxIndustryCount) * 100)
                     : 0
+                // 표본 대비 비중은 100%를 넘을 수 없다. 서버 값이 어긋나도 상한을 지킨다
                 const sharePercent =
                   sampleSize > 0
-                    ? formatRatioPercent(industry.count / sampleSize)
+                    ? formatRatioPercent(
+                        Math.min(1, industry.count / sampleSize)
+                      )
                     : null
 
                 return (

@@ -1,6 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
+
 import { classNames, formatNumberComma } from 'utils'
 import { normalizeUrl } from 'shared/lib/url'
+
 import type { JobVacancy } from 'types/search'
 
 const INITIAL_VISIBLE_COUNT = 6
@@ -14,11 +16,9 @@ export default function JobVacancyList({ vacancies }: JobVacancyListProps) {
   const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE_COUNT)
 
   // 모집중을 앞으로 올리되 서버가 준 순서는 각 그룹 안에서 그대로 유지한다
-  const sortedVacancies = useMemo(() => {
-    const openings = vacancies.filter((vacancy) => vacancy.active !== false)
-    const closed = vacancies.filter((vacancy) => vacancy.active === false)
-    return [...openings, ...closed]
-  }, [vacancies])
+  const openings = vacancies.filter((vacancy) => vacancy.active !== false)
+  const closed = vacancies.filter((vacancy) => vacancy.active === false)
+  const sortedVacancies = [...openings, ...closed]
 
   const visibleVacancies = sortedVacancies.slice(0, visibleCount)
   const remainingCount = sortedVacancies.length - visibleVacancies.length
@@ -63,15 +63,12 @@ export default function JobVacancyList({ vacancies }: JobVacancyListProps) {
   )
 }
 
-const ISO_DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/
-
-/** 매핑 단계에서 검증된 'YYYY-MM-DD'만 들어오지만 형식이 어긋나면 표시하지 않는다. */
+/** 형식 검증은 매핑 단계가 끝냈고, 여기서는 값 없음·조각 수만 방어한다. */
 function formatDotDate(value: string | null): string {
   if (!value) return ''
-  const matched = ISO_DATE_PATTERN.exec(value)
-  if (!matched) return ''
-  const [, year, month, day] = matched
-  return `${year}.${month}.${day}`
+  const parts = value.split('-')
+  if (parts.length !== 3) return ''
+  return parts.join('.')
 }
 
 function JobVacancyCard({ vacancy }: { vacancy: JobVacancy }) {
@@ -142,10 +139,8 @@ function JobVacancyCard({ vacancy }: { vacancy: JobVacancy }) {
             <span
               key={chip.key}
               className={classNames(
-                'inline-flex items-center rounded-full px-2 py-0.5 text-xs',
-                isClosed
-                  ? 'bg-gray-100 text-gray-400'
-                  : 'bg-gray-100 text-gray-600'
+                'inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs',
+                isClosed ? 'text-gray-400' : 'text-gray-600'
               )}
             >
               {chip.value}
@@ -186,7 +181,7 @@ function JobVacancyCard({ vacancy }: { vacancy: JobVacancy }) {
           rel="noopener noreferrer"
           className="mt-3 inline-flex w-fit items-center gap-1 rounded-md border border-brand-600 px-3 py-1.5 text-sm font-medium text-brand-700 hover:bg-brand-50"
         >
-          사람인에서 보기
+          공고 상세 보기
           <span aria-hidden="true">↗</span>
           <span className="sr-only">(새 탭에서 열립니다)</span>
         </a>
