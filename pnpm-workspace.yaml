@@ -1,0 +1,7 @@
+# pnpm 11은 의존성의 빌드 스크립트를 기본 차단한다.
+# 두 패키지는 네이티브 바이너리가 필요해 빌드 없이는 vite/vitest가 뜨지 않으므로 허용한다.
+# - @swc/core: @vitejs/plugin-react-swc가 쓰는 트랜스파일러
+# - esbuild: vite의 의존성 번들러
+allowBuilds:
+  '@swc/core': true
+  esbuild: true

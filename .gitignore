@@ -39,3 +39,7 @@ yarn-error.log*
 
 # claude code (로컬 설정 — 개인 허용 목록이라 공유하지 않는다)
 .claude/settings.local.json
+
+# IDE (개인 작업 환경 설정이라 공유하지 않는다)
+.idea/
+*.iml

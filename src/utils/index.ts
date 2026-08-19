@@ -5,6 +5,9 @@ import type {
   RegionDetailInfraItem,
   RegionDetailSupportItem,
   JobInfo,
+  JobVacancy,
+  JobIndustryShare,
+  RegionJobProfile,
   DwellingSimpleInfo,
   AiPickRecommendation
 } from 'types/search'
@@ -21,8 +24,12 @@ export interface RecommendationParams {
   infraImportance: 'LOW' | 'MID' | 'HIGH'
   midJobCode?: string
   supportTag?: string
-  infraChoice?: number
-  supportChoice?: number
+  /**
+   * 서버가 필수로 요구한다. 둘 중 하나라도 빠지면 400 BIND_FAILED가 난다.
+   * 선택한 항목이 없을 때도 생략하지 말고 비트마스크 0을 보낸다.
+   */
+  infraChoice: number
+  supportChoice: number
 }
 
 /**
@@ -191,7 +198,12 @@ function legacyToRecommendationParams(
     dwellingType,
     price,
     infraImportance,
-    supportTag: supportTagName ? legacySupportTagMap[supportTagName] : undefined
+    supportTag: supportTagName
+      ? legacySupportTagMap[supportTagName]
+      : undefined,
+    // 레거시 필터에는 대응하는 선택값이 없으므로 "선택 없음"을 뜻하는 0을 보낸다.
+    infraChoice: 0,
+    supportChoice: 0
   }
 }
 
@@ -266,6 +278,95 @@ function toSupportItems(list: unknown): RegionDetailSupportItem[] {
     items.push({ title, url, keyword })
   }
   return items
+}
+
+function toTrimmedString(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : ''
+}
+
+const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
+
+// 서버가 Spring LocalDateTime 기본 직렬화('2026-08-19T00:00:00')로 바뀌어도 날짜가
+// 통째로 사라지지 않도록 'YYYY-MM-DD'를 접두사로 갖는 ISO 문자열까지 받아들인다.
+function toIsoDate(value: unknown): string | null {
+  const datePart = toTrimmedString(value).slice(0, 10)
+  return ISO_DATE_PATTERN.test(datePart) ? datePart : null
+}
+
+function toJobVacancies(list: unknown): JobVacancy[] {
+  if (!Array.isArray(list)) return []
+
+  const seenPostingIds = new Set<string>()
+  return list
+    .map((raw): JobVacancy | null => {
+      const record = toRecord(raw)
+      if (!record) return null
+      const postingId = toTrimmedString(record.postingId)
+      // postingId가 리스트 key이자 중복 판정 기준이므로 없는 항목은 버린다
+      if (!postingId || seenPostingIds.has(postingId)) return null
+      seenPostingIds.add(postingId)
+
+      return {
+        postingId,
+        title: toTrimmedString(record.title),
+        companyName: toTrimmedString(record.companyName),
+        detailUrl: toTrimmedString(record.detailUrl),
+        regionName: toTrimmedString(record.regionName),
+        jobName: toTrimmedString(record.jobName),
+        salaryText: toTrimmedString(record.salaryText),
+        experienceText: toTrimmedString(record.experienceText),
+        educationText: toTrimmedString(record.educationText),
+        employmentType: toTrimmedString(record.employmentType),
+        active: typeof record.active === 'boolean' ? record.active : null,
+        postingDate: toIsoDate(record.postingDate),
+        expirationDate: toIsoDate(record.expirationDate)
+      }
+    })
+    .filter((entry): entry is JobVacancy => entry !== null)
+}
+
+function toIndustryShares(list: unknown): JobIndustryShare[] {
+  if (!Array.isArray(list)) return []
+
+  const seenNames = new Set<string>()
+  return list
+    .map((raw): JobIndustryShare | null => {
+      const record = toRecord(raw)
+      if (!record) return null
+      const name = toTrimmedString(record.name)
+      const count = toNullableNumber(record.count)
+      if (!name || count === null || count <= 0) return null
+      // name이 리스트 key이므로 중복된 업종은 먼저 온 항목만 남긴다
+      if (seenNames.has(name)) return null
+      seenNames.add(name)
+      return { name, count }
+    })
+    .filter((entry): entry is JobIndustryShare => entry !== null)
+}
+
+function toRegionJobProfile(data: unknown): RegionJobProfile | null {
+  const record = toRecord(data)
+  if (!record) return null
+
+  const newcomerRatio = toNullableNumber(record.newcomerRatio)
+  const salaryMedianManwon = toNullableNumber(record.salaryMedianManwon)
+
+  return {
+    // toNullableNumber는 Number() 기반이라 ''·[] 같은 값도 0으로 통과시킨다.
+    // 0 이하 중앙값은 집계가 없다는 뜻이므로 '0만원' 대신 값 없음으로 본다
+    salaryMedianManwon:
+      salaryMedianManwon !== null && salaryMedianManwon > 0
+        ? salaryMedianManwon
+        : null,
+    // 0~1 실수 계약을 벗어난 값은 비율로 해석할 수 없으므로 값 없음으로 본다
+    newcomerRatio:
+      newcomerRatio !== null && newcomerRatio >= 0 && newcomerRatio <= 1
+        ? newcomerRatio
+        : null,
+    topIndustries: toIndustryShares(record.topIndustries),
+    sampleSize: toNullableNumber(record.sampleSize) ?? 0,
+    salaryParsedCount: toNullableNumber(record.salaryParsedCount) ?? 0
+  }
 }
 
 function mapRecommendationResponse(payload: unknown): RegionRecommendation {
@@ -414,7 +515,9 @@ function mapDetailResponse(payload: unknown): RegionDetail {
     dwellingInfo,
     infra: infraDetails,
     infraDetails,
-    infraMajors
+    infraMajors,
+    jobVacancies: toJobVacancies(source.jobVacancies),
+    regionJobProfile: toRegionJobProfile(source.regionJobProfile)
   }
 }
 
@@ -431,14 +534,8 @@ export async function fetchRecommendations(
     dwellingType: normalizedFilters.dwellingType,
     price: normalizedFilters.price,
     infraImportance: normalizedFilters.infraImportance,
-    infraChoice:
-      typeof normalizedFilters.infraChoice === 'number'
-        ? normalizedFilters.infraChoice
-        : undefined,
-    supportChoice:
-      typeof normalizedFilters.supportChoice === 'number'
-        ? normalizedFilters.supportChoice
-        : undefined,
+    infraChoice: normalizedFilters.infraChoice,
+    supportChoice: normalizedFilters.supportChoice,
     aiUse: 'true'
   })
 
@@ -564,4 +661,8 @@ export function formatKRW(value: number): string {
 
 export function formatKRWMan(value: number): string {
   return `${formatNumberComma(value)}만원`
+}
+
+export function formatRatioPercent(value: number): string {
+  return `${Math.round(value * 100)}%`
 }
