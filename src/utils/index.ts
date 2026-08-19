@@ -277,9 +277,11 @@ function toTrimmedString(value: unknown): string {
 
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
 
+// 서버가 Spring LocalDateTime 기본 직렬화('2026-08-19T00:00:00')로 바뀌어도 날짜가
+// 통째로 사라지지 않도록 'YYYY-MM-DD'를 접두사로 갖는 ISO 문자열까지 받아들인다.
 function toIsoDate(value: unknown): string | null {
-  const text = toTrimmedString(value)
-  return ISO_DATE_PATTERN.test(text) ? text : null
+  const datePart = toTrimmedString(value).slice(0, 10)
+  return ISO_DATE_PATTERN.test(datePart) ? datePart : null
 }
 
 function toJobVacancies(list: unknown): JobVacancy[] {
@@ -317,6 +319,7 @@ function toJobVacancies(list: unknown): JobVacancy[] {
 function toIndustryShares(list: unknown): JobIndustryShare[] {
   if (!Array.isArray(list)) return []
 
+  const seenNames = new Set<string>()
   return list
     .map((raw): JobIndustryShare | null => {
       const record = toRecord(raw)
@@ -324,6 +327,9 @@ function toIndustryShares(list: unknown): JobIndustryShare[] {
       const name = toTrimmedString(record.name)
       const count = toNullableNumber(record.count)
       if (!name || count === null || count <= 0) return null
+      // name이 리스트 key이므로 중복된 업종은 먼저 온 항목만 남긴다
+      if (seenNames.has(name)) return null
+      seenNames.add(name)
       return { name, count }
     })
     .filter((entry): entry is JobIndustryShare => entry !== null)
@@ -334,9 +340,15 @@ function toRegionJobProfile(data: unknown): RegionJobProfile | null {
   if (!record) return null
 
   const newcomerRatio = toNullableNumber(record.newcomerRatio)
+  const salaryMedianManwon = toNullableNumber(record.salaryMedianManwon)
 
   return {
-    salaryMedianManwon: toNullableNumber(record.salaryMedianManwon),
+    // toNullableNumber는 Number() 기반이라 ''·[] 같은 값도 0으로 통과시킨다.
+    // 0 이하 중앙값은 집계가 없다는 뜻이므로 '0만원' 대신 값 없음으로 본다
+    salaryMedianManwon:
+      salaryMedianManwon !== null && salaryMedianManwon > 0
+        ? salaryMedianManwon
+        : null,
     // 0~1 실수 계약을 벗어난 값은 비율로 해석할 수 없으므로 값 없음으로 본다
     newcomerRatio:
       newcomerRatio !== null && newcomerRatio >= 0 && newcomerRatio <= 1
