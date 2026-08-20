@@ -26,18 +26,29 @@ export default function JobVacancyList({ vacancies }: JobVacancyListProps) {
   return (
     <section className="space-y-3">
       <div className="flex items-baseline gap-2">
-        <h2 className="text-lg font-semibold">채용공고</h2>
-        <span className="text-sm tabular-nums text-gray-500">
+        <h2 className="text-lg font-semibold dark:text-gray-100">채용공고</h2>
+        <span className="text-sm tabular-nums text-gray-500 dark:text-gray-400">
           총 {formatNumberComma(vacancies.length)}건
         </span>
       </div>
 
       {vacancies.length === 0 ? (
-        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-          <p className="text-gray-500">현재 등록된 채용공고가 없습니다.</p>
+        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+          <p className="text-gray-500 dark:text-gray-400">
+            현재 등록된 채용공고가 없습니다.
+          </p>
         </div>
       ) : (
         <>
+          {/* 더보기로 늘어난 건수는 화면에 조용히 추가되므로 소리로도 알린다 */}
+          <p aria-live="polite" className="sr-only">
+            {`채용공고 ${formatNumberComma(
+              vacancies.length
+            )}건 중 ${formatNumberComma(
+              visibleVacancies.length
+            )}건을 표시하고 있습니다.`}
+          </p>
+
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {visibleVacancies.map((vacancy) => (
               <JobVacancyCard key={vacancy.postingId} vacancy={vacancy} />
@@ -51,7 +62,7 @@ export default function JobVacancyList({ vacancies }: JobVacancyListProps) {
                 onClick={() =>
                   setVisibleCount((current) => current + LOAD_MORE_STEP)
                 }
-                className="rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm text-gray-700 transition hover:border-gray-400"
+                className="inline-flex min-h-11 items-center justify-center rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm text-gray-700 transition hover:border-gray-400 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:border-gray-600"
               >
                 더보기 ({formatNumberComma(remainingCount)}건 남음)
               </button>
@@ -97,26 +108,28 @@ function JobVacancyCard({ vacancy }: { vacancy: JobVacancy }) {
   return (
     <article
       className={classNames(
-        'flex size-full flex-col rounded-xl border border-gray-200 p-4 shadow-sm',
-        isClosed ? 'bg-gray-50' : 'bg-white'
+        'flex size-full flex-col rounded-xl border border-gray-200 p-4 shadow-sm dark:border-gray-800',
+        isClosed ? 'bg-gray-50 dark:bg-gray-800' : 'bg-white dark:bg-gray-900'
       )}
     >
       <div className="flex items-start gap-2">
         <h3
           className={classNames(
             'flex-1 text-base font-semibold',
-            isClosed ? 'text-gray-500' : 'text-gray-900'
+            isClosed
+              ? 'text-gray-500 dark:text-gray-400'
+              : 'text-gray-900 dark:text-gray-100'
           )}
         >
           {title}
         </h3>
         {vacancy.active === true && (
-          <span className="shrink-0 rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700">
+          <span className="shrink-0 rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700 dark:bg-brand-950 dark:text-brand-300">
             모집중
           </span>
         )}
         {vacancy.active === false && (
-          <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
+          <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500 dark:bg-gray-700 dark:text-gray-300">
             마감
           </span>
         )}
@@ -126,7 +139,9 @@ function JobVacancyCard({ vacancy }: { vacancy: JobVacancy }) {
         <p
           className={classNames(
             'mt-1 text-sm',
-            isClosed ? 'text-gray-400' : 'text-gray-600'
+            isClosed
+              ? 'text-gray-500 dark:text-gray-400'
+              : 'text-gray-600 dark:text-gray-300'
           )}
         >
           {vacancy.companyName}
@@ -138,10 +153,7 @@ function JobVacancyCard({ vacancy }: { vacancy: JobVacancy }) {
           {chips.map((chip) => (
             <span
               key={chip.key}
-              className={classNames(
-                'inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs',
-                isClosed ? 'text-gray-400' : 'text-gray-600'
-              )}
+              className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-700 dark:text-gray-200"
             >
               {chip.value}
             </span>
@@ -153,11 +165,15 @@ function JobVacancyCard({ vacancy }: { vacancy: JobVacancy }) {
         <dl className="mt-3 space-y-1">
           {conditions.map((condition) => (
             <div key={condition.key} className="flex gap-2 text-sm">
-              <dt className="w-10 shrink-0 text-gray-500">{condition.label}</dt>
+              <dt className="w-10 shrink-0 text-gray-500 dark:text-gray-400">
+                {condition.label}
+              </dt>
               <dd
                 className={classNames(
                   'flex-1',
-                  isClosed ? 'text-gray-500' : 'text-gray-800'
+                  isClosed
+                    ? 'text-gray-500 dark:text-gray-400'
+                    : 'text-gray-800 dark:text-gray-200'
                 )}
               >
                 {condition.value}
@@ -168,7 +184,7 @@ function JobVacancyCard({ vacancy }: { vacancy: JobVacancy }) {
       )}
 
       {(postingDateText || expirationDateText) && (
-        <p className="mt-3 flex flex-wrap gap-x-2 text-xs tabular-nums text-gray-500">
+        <p className="mt-3 flex flex-wrap gap-x-2 text-xs tabular-nums text-gray-500 dark:text-gray-400">
           {postingDateText && <span>{postingDateText} 등록</span>}
           {expirationDateText && <span>~ {expirationDateText} 마감</span>}
         </p>
@@ -179,7 +195,7 @@ function JobVacancyCard({ vacancy }: { vacancy: JobVacancy }) {
           href={detailHref}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-3 inline-flex w-fit items-center gap-1 rounded-md border border-brand-600 px-3 py-1.5 text-sm font-medium text-brand-700 hover:bg-brand-50"
+          className="mt-3 inline-flex min-h-11 w-fit items-center gap-1 rounded-md border border-brand-600 px-3 py-1.5 text-sm font-medium text-brand-700 hover:bg-brand-50 dark:border-brand-400 dark:text-brand-300 dark:hover:bg-brand-950"
         >
           공고 상세 보기
           <span aria-hidden="true">↗</span>

@@ -1,10 +1,14 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useState } from 'react'
+
+import Combobox from 'shared/components/Combobox'
 import {
   loadSidoList,
   loadSigunguList,
   getSigunguBySido,
   REGION_JSON
 } from 'utils/regionCodes'
+
+import type { ComboboxOption } from 'shared/components/Combobox'
 
 interface Props {
   defaultSidoCode?: string
@@ -19,6 +23,7 @@ export default function RegionDrilldown({
   onSelect,
   actionLabel = '선택 완료'
 }: Props) {
+  const hintId = useId()
   const sidoList = useMemo(() => loadSidoList(), [])
   const [sido, setSido] = useState<string>(() => {
     if (!defaultSidoCode) {
@@ -38,8 +43,6 @@ export default function RegionDrilldown({
   })
   const [sidoQuery, setSidoQuery] = useState('')
   const [sigunguQuery, setSigunguQuery] = useState('')
-  const [sidoFocused, setSidoFocused] = useState(false)
-  const [sigunguFocused, setSigunguFocused] = useState(false)
 
   const sigunguListAll = useMemo(() => loadSigunguList(), [])
   const sigunguList = useMemo(
@@ -115,6 +118,26 @@ export default function RegionDrilldown({
     })
   }, [getSigunguLabel, sigunguList, sigunguQuery])
 
+  const sidoOptions = useMemo<ComboboxOption[]>(
+    () => filteredSido.map((s) => ({ value: s.code, label: s.name })),
+    [filteredSido]
+  )
+  const sigunguOptions = useMemo<ComboboxOption[]>(
+    () =>
+      filteredSigungu.map((g) => {
+        const label = getSigunguLabel(g)
+        const sidoName = REGION_JSON.sidoByCode[g.sidoCode] || ''
+        // 라벨에 이미 시·도명이 붙었거나 시·도가 정해져 있으면 보조 설명은 중복이다
+        const needHint = !sido && sidoName !== '' && label === g.name
+        return {
+          value: g.code,
+          label,
+          hint: needHint ? sidoName : undefined
+        }
+      }),
+    [filteredSigungu, getSigunguLabel, sido]
+  )
+
   useEffect(() => {
     if (!sigunguList.find((s) => s.code === sigungu)) {
       setSigungu('')
@@ -131,6 +154,7 @@ export default function RegionDrilldown({
     setSigunguQuery(current ? getSigunguLabel(current) : '')
   }, [getSigunguLabel, sigungu, sigunguList])
 
+  // 목록에서 고르지 않고 입력창을 떠났을 때, 이름이 정확히 일치하면 선택으로 확정한다
   const confirmSidoInput = () => {
     const name = sidoQuery.trim()
     const match = sidoList.find((s) => s.name === name)
@@ -160,141 +184,91 @@ export default function RegionDrilldown({
     }
   }
 
+  const handleSidoQueryChange = (query: string) => {
+    setSidoQuery(query)
+    setSido('')
+  }
+
+  const handleSidoSelect = (option: ComboboxOption) => {
+    setSido(option.value)
+    setSidoQuery(option.label)
+    // 시군구는 자동 선택하지 않고 비움
+    setSigungu('')
+    setSigunguQuery('')
+  }
+
+  const handleSigunguQueryChange = (query: string) => {
+    setSigunguQuery(query)
+    setSigungu('')
+  }
+
+  const handleSigunguSelect = (option: ComboboxOption) => {
+    setSigungu(option.value)
+    setSigunguQuery(option.label)
+    // 시군구 선택 시 해당 시도 자동 채움
+    const parent = REGION_JSON.sigunguByCode[option.value]
+    if (parent) {
+      setSido(parent.sidoCode)
+      setSidoQuery(parent.sidoName || '')
+    }
+  }
+
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-      <div className="border-b border-gray-100 bg-brand-50/60 px-5 py-4">
+    <div className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900 dark:shadow-none">
+      <div className="border-b border-gray-100 bg-brand-50/60 px-5 py-4 dark:border-gray-800 dark:bg-brand-950">
         <div className="flex items-center gap-2">
-          {/*<span className="inline-flex size-6 items-center justify-center rounded-full bg-brand-600 text-xs font-bold text-white">R</span>*/}
-          <h2 className="text-lg font-semibold text-gray-900">지역 선택</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            지역 선택
+          </h2>
         </div>
-        <p className="mt-1 text-sm text-gray-600">
+        <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
           시·도를 고르고, 시·군·구를 선택하세요.
         </p>
       </div>
 
       <div className="grid gap-4 p-5 sm:grid-cols-2">
-        {/* Sido Autocomplete */}
-        <div className="flex flex-col gap-2">
-          <span className="text-sm font-medium text-gray-700">시·도</span>
-          <div className="relative">
-            <input
-              type="text"
-              value={sidoQuery}
-              onChange={(e) => {
-                setSidoQuery(e.target.value)
-                setSido('')
-              }}
-              onFocus={() => setSidoFocused(true)}
-              onBlur={() =>
-                setTimeout(() => {
-                  setSidoFocused(false)
-                  confirmSidoInput()
-                }, 120)
-              }
-              placeholder="예: 경상북도"
-              className="w-full rounded-xl border border-gray-300 px-3 py-2 outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20"
-            />
-            {filteredSido.length > 0 && sidoFocused && (
-              <ul className="absolute z-10 mt-2 max-h-60 w-full overflow-auto rounded-lg border border-gray-200 bg-white shadow-md">
-                {filteredSido.map((s: { code: string; name: string }) => (
-                  <li key={s.code}>
-                    <button
-                      type="button"
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => {
-                        setSido(s.code)
-                        setSidoQuery(s.name)
-                        setSidoFocused(false)
-                        // 시군구는 자동 선택하지 않고 비움
-                        setSigungu('')
-                        setSigunguQuery('')
-                      }}
-                      className="flex w-full items-center justify-between px-4 py-2 text-left hover:bg-gray-50"
-                    >
-                      <span>{s.name}</span>
-                      <span className="text-xs text-gray-400">선택</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-          <p className="text-xs text-gray-500">
-            시·도 이름으로 검색해 선택하세요.
-          </p>
-        </div>
+        <Combobox
+          label="시·도"
+          query={sidoQuery}
+          onQueryChange={handleSidoQueryChange}
+          options={sidoOptions}
+          onSelect={handleSidoSelect}
+          onCommit={confirmSidoInput}
+          onClear={() => handleSidoQueryChange('')}
+          placeholder="예: 경상북도"
+          description="시·도 이름으로 검색해 선택하세요."
+        />
 
-        {/* Sigungu Autocomplete */}
-        <div className="flex flex-col gap-2">
-          <span className="text-sm font-medium text-gray-700">시·군·구</span>
-          <div className="relative">
-            <input
-              type="text"
-              value={sigunguQuery}
-              onChange={(e) => {
-                setSigunguQuery(e.target.value)
-                setSigungu('')
-              }}
-              onFocus={() => setSigunguFocused(true)}
-              onBlur={() =>
-                setTimeout(() => {
-                  setSigunguFocused(false)
-                  confirmSigunguInput()
-                }, 120)
-              }
-              placeholder="예: 안동시"
-              className="w-full rounded-xl border border-gray-300 px-3 py-2 outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20"
-            />
-            {filteredSigungu.length > 0 && sigunguFocused && (
-              <ul className="absolute z-10 mt-2 max-h-60 w-full overflow-auto rounded-lg border border-gray-200 bg-white shadow-md">
-                {filteredSigungu.map(
-                  (g: { code: string; name: string; sidoCode: string }) => (
-                    <li key={g.code}>
-                      <button
-                        type="button"
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => {
-                          setSigungu(g.code)
-                          setSigunguQuery(getSigunguLabel(g))
-                          setSigunguFocused(false)
-                          // 시군구 선택 시 해당 시도 자동 채움
-                          const parent = REGION_JSON.sigunguByCode[g.code]
-                          if (parent) {
-                            setSido(parent.sidoCode)
-                            setSidoQuery(parent.sidoName || '')
-                          }
-                        }}
-                        className="flex w-full items-center justify-between px-4 py-2 text-left hover:bg-gray-50"
-                      >
-                        <span>{getSigunguLabel(g)}</span>
-                        <span className="text-xs text-gray-400">선택</span>
-                      </button>
-                    </li>
-                  )
-                )}
-              </ul>
-            )}
-          </div>
-          <p className="text-xs text-gray-500">
-            시·군·구 이름으로 검색해 선택하세요.
-          </p>
-          {filteredSigungu.length === 0 && (
-            <p className="text-xs text-red-600">
-              해당 이름의 시·군·구를 찾을 수 없습니다.
-            </p>
-          )}
-        </div>
+        <Combobox
+          label="시·군·구"
+          query={sigunguQuery}
+          onQueryChange={handleSigunguQueryChange}
+          options={sigunguOptions}
+          onSelect={handleSigunguSelect}
+          onCommit={confirmSigunguInput}
+          onClear={() => handleSigunguQueryChange('')}
+          placeholder="예: 안동시"
+          description="시·군·구 이름으로 검색해 선택하세요."
+          emptyMessage={
+            sigunguQuery.trim()
+              ? '해당 이름의 시·군·구를 찾을 수 없습니다.'
+              : undefined
+          }
+        />
       </div>
 
-      <div className="flex items-center justify-between border-t border-gray-100 px-5 py-4">
-        <p className="text-sm text-gray-500">
-          선택한 지역은 페이지 이동 후 상단에 표시됩니다.
+      <div className="flex items-center justify-between gap-4 border-t border-gray-100 px-5 py-4 dark:border-gray-800">
+        <p id={hintId} className="text-sm text-gray-500 dark:text-gray-400">
+          {sigungu
+            ? '선택한 지역은 페이지 이동 후 상단에 표시됩니다.'
+            : '시·군·구를 선택하면 아래 버튼을 사용할 수 있습니다.'}
         </p>
         <button
           type="button"
           disabled={!sigungu}
+          aria-describedby={hintId}
           onClick={() => sigungu && onSelect(sigungu)}
-          className="rounded-lg bg-brand-600 px-4 py-2 font-semibold text-white shadow-sm hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
+          className="min-h-11 rounded-lg bg-brand-700 px-4 py-2 font-semibold text-white shadow-sm hover:bg-brand-800 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-600 disabled:shadow-none dark:bg-brand-400 dark:text-gray-950 dark:shadow-none dark:hover:bg-brand-300 dark:disabled:bg-gray-700 dark:disabled:text-gray-300"
         >
           {actionLabel}
         </button>

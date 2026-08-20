@@ -81,9 +81,18 @@ const rawBaseUrl =
   (import.meta.env.VITE_API_BASE_URL as string | undefined) || ''
 const API_BASE_URL = rawBaseUrl.replace(/\/?$/, '')
 
+/**
+ * 서버 주소 누락은 요청을 보내기 전에 확정되는 설정 오류다.
+ * 화면의 오류 분기가 전부 `instanceof ApiError`로 메시지를 신뢰하므로,
+ * 여기서 평범한 Error를 던지면 원인이 일반 문구로 뭉개진다.
+ * status 0은 "요청 자체가 나가지 못했다"는 뜻이다.
+ */
 function ensureApiBaseUrl(): string {
   if (!API_BASE_URL) {
-    throw new Error('VITE_API_BASE_URL 환경 변수가 설정되어 있지 않습니다.')
+    throw new ApiError(
+      '서버 주소가 설정되지 않아 데이터를 불러올 수 없습니다.',
+      { status: 0, code: 'API_BASE_URL_MISSING' }
+    )
   }
   return API_BASE_URL
 }

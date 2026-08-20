@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useState } from 'react'
 import { classNames } from 'utils'
 
 const DEFAULT_MESSAGES = [
@@ -16,6 +16,11 @@ function sanitizeMessages(messages?: string[]): string[] {
   return filtered.length > 0 ? filtered : DEFAULT_MESSAGES
 }
 
+function pickRandomMessage(messages?: string[]): string {
+  const pool = sanitizeMessages(messages)
+  return pool[Math.floor(Math.random() * pool.length)]
+}
+
 type LoadingIndicatorProps = {
   messages?: string[]
   className?: string
@@ -29,26 +34,19 @@ export default function LoadingIndicator({
   compact = false,
   description
 }: LoadingIndicatorProps) {
-  const messagePool = useMemo(() => sanitizeMessages(messages), [messages])
-  const messageRef = useRef<string>(
-    messagePool[Math.floor(Math.random() * messagePool.length)]
-  )
-
-  useEffect(() => {
-    messageRef.current =
-      messagePool[Math.floor(Math.random() * messagePool.length)]
-  }, [messagePool])
+  // 로딩 중 문구가 리렌더마다 바뀌지 않도록 마운트 시 한 번만 고른다
+  const [message] = useState(() => pickRandomMessage(messages))
 
   const spinnerSize = compact ? 'h-8 w-8' : 'h-12 w-12'
 
   return (
     <div
       role="status"
-      aria-live="assertive"
+      aria-live="polite"
       className={classNames(
         compact
-          ? 'flex items-center gap-3 text-sm text-gray-600'
-          : 'flex flex-col items-center gap-4 text-center text-sm text-gray-600',
+          ? 'flex items-center gap-3 text-sm text-gray-600 dark:text-gray-300'
+          : 'flex flex-col items-center gap-4 text-center text-sm text-gray-600 dark:text-gray-300',
         className
       )}
     >
@@ -60,33 +58,24 @@ export default function LoadingIndicator({
       >
         <span
           className={classNames(
-            'absolute rounded-full border-2 border-brand-100',
+            'absolute rounded-full border-2 border-brand-100 dark:border-brand-900',
             spinnerSize
           )}
         />
+        {/* 축소 모션 설정에서는 회전을 멈추고 정적인 원호와 문구로 상태를 전달한다 */}
         <span
           className={classNames(
-            'absolute rounded-full border-2 border-brand-500 border-t-transparent animate-loading-rotate',
+            'absolute animate-loading-rotate rounded-full border-2 border-brand-500 border-t-transparent motion-reduce:animate-none dark:border-brand-400 dark:border-t-transparent',
             spinnerSize
           )}
         />
-        {/*<span className="flex items-center gap-1">
-          {[0, 1, 2].map((index) => (
-            <span
-              key={index}
-              className={classNames(
-                'rounded-full bg-brand-500 animate-loading-bounce',
-                dotSize
-              )}
-              style={{ animationDelay: `${index * 120}ms` }}
-            />
-          ))}
-        </span>*/}
       </div>
       <div className="space-y-1">
-        <p>{messageRef.current}</p>
+        <p>{message}</p>
         {description ? (
-          <p className="text-xs text-gray-400">{description}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            {description}
+          </p>
         ) : null}
       </div>
     </div>
