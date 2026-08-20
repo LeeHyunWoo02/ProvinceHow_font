@@ -35,15 +35,10 @@ export default {
         'loading-rotate': {
           '0%': { transform: 'rotate(0deg)' },
           '100%': { transform: 'rotate(360deg)' }
-        },
-        'loading-bounce': {
-          '0%, 100%': { transform: 'translateY(0)', opacity: '0.35' },
-          '50%': { transform: 'translateY(-6px)', opacity: '1' }
         }
       },
       animation: {
-        'loading-rotate': 'loading-rotate 1.2s linear infinite',
-        'loading-bounce': 'loading-bounce 0.9s ease-in-out infinite'
+        'loading-rotate': 'loading-rotate 1.2s linear infinite'
       }
     }
   },
