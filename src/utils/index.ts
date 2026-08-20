@@ -77,9 +77,22 @@ export class ApiError extends Error {
   }
 }
 
-const rawBaseUrl =
+const rawBaseUrl = (
   (import.meta.env.VITE_API_BASE_URL as string | undefined) || ''
-const API_BASE_URL = rawBaseUrl.replace(/\/?$/, '')
+).trim()
+
+/**
+ * 값이 `/` 하나면 "이 사이트와 같은 오리진"을 뜻한다.
+ * Vercel 배포에서는 `vercel.json`의 rewrite가 `/api/*`를 HTTP 백엔드로 넘기므로,
+ * 브라우저는 자기 오리진(HTTPS)만 호출하면 된다.
+ * 이렇게 해야 HTTPS를 지원하지 않는 백엔드로 인한 mixed content 차단과,
+ * 백엔드 CORS 허용목록에 배포 도메인이 없는 문제를 동시에 피할 수 있다.
+ * 빈 값은 여기에 해당하지 않는다. 같은 오리진은 `/`로 명시할 때만 켜진다.
+ */
+const IS_SAME_ORIGIN_BASE_URL = rawBaseUrl === '/'
+const API_BASE_URL = IS_SAME_ORIGIN_BASE_URL
+  ? ''
+  : rawBaseUrl.replace(/\/?$/, '')
 
 /**
  * 서버 주소 누락은 요청을 보내기 전에 확정되는 설정 오류다.
@@ -88,6 +101,11 @@ const API_BASE_URL = rawBaseUrl.replace(/\/?$/, '')
  * status 0은 "요청 자체가 나가지 못했다"는 뜻이다.
  */
 function ensureApiBaseUrl(): string {
+  // 상대 경로는 `new URL`의 base가 될 수 없으므로 현재 오리진을 base로 쓴다.
+  if (IS_SAME_ORIGIN_BASE_URL) {
+    return window.location.origin
+  }
+
   if (!API_BASE_URL) {
     throw new ApiError(
       '서버 주소가 설정되지 않아 데이터를 불러올 수 없습니다.',
