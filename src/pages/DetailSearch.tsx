@@ -2,10 +2,12 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import RegionCard from 'components/RegionCard'
 import LoadingIndicator from 'components/LoadingIndicator'
+import Combobox, { type ComboboxOption } from 'shared/components/Combobox'
 import { useComparison } from 'state/comparisonStore'
 import { useRecommendationFilters } from 'state/recommendationFilters'
 import {
   ApiError,
+  classNames,
   fetchJobMidCodes,
   fetchJobTopCodes,
   fetchSupportTags,
@@ -140,11 +142,11 @@ export default function DetailSearch() {
     }
   }, [supportTags, supportTagCodes, setSupportTagCodes])
 
-  const [jobInputFocused, setJobInputFocused] = useState(false)
-
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [results, setResults] = useState<RegionRecommendation[]>([])
+  // 검색 전과 결과 0건을 구분하기 위한 플래그다
+  const [hasSearched, setHasSearched] = useState(false)
 
   useEffect(() => {
     if (!priceOptions.length) return
@@ -272,33 +274,52 @@ export default function DetailSearch() {
     ? topNameMap.get(selectedJobTop)
     : ''
 
-  const handleSelectJobSuggestion = (suggestion: JobSuggestion) => {
-    setOccupationQuery(suggestion.name)
-    setSelectedJobMid(suggestion.code)
-    setSelectedJobTop(suggestion.topCode)
-    setJobInputFocused(false)
+  const jobOptions = useMemo<ComboboxOption[]>(
+    () =>
+      filteredJobSuggestions.map((suggestion) => ({
+        value: suggestion.code,
+        label: suggestion.name,
+        hint: suggestion.topName
+      })),
+    [filteredJobSuggestions]
+  )
+
+  const clearJobSelection = () => {
+    setOccupationQuery('')
+    setSelectedJobMid('')
+    setSelectedJobTop('')
   }
 
-  const handleJobInputBlur = () => {
-    setTimeout(() => {
-      setJobInputFocused(false)
-      const match = jobSuggestions.find((item) => item.name === occupationQuery)
-      if (!match) {
-        setOccupationQuery('')
-        setSelectedJobMid('')
-        setSelectedJobTop('')
-      } else {
-        setSelectedJobMid(match.code)
-        setSelectedJobTop(match.topCode)
-      }
-    }, 120)
+  const handleJobQueryChange = (query: string) => {
+    setOccupationQuery(query)
+    setSelectedJobMid('')
+    setSelectedJobTop('')
+  }
+
+  const handleSelectJobOption = (option: ComboboxOption) => {
+    const match = jobSuggestions.find((item) => item.code === option.value)
+    if (!match) return
+    setOccupationQuery(match.name)
+    setSelectedJobMid(match.code)
+    setSelectedJobTop(match.topCode)
+  }
+
+  // 목록에서 고르지 않고 떠났을 때: 정확히 일치하는 직종만 선택으로 확정한다
+  const handleJobCommit = () => {
+    const match = jobSuggestions.find((item) => item.name === occupationQuery)
+    if (!match) {
+      clearJobSelection()
+      return
+    }
+    setSelectedJobMid(match.code)
+    setSelectedJobTop(match.topCode)
   }
 
   const resetFilters = () => {
     resetRecommendationFilters()
-    setJobInputFocused(false)
     setResults([])
     setError(null)
+    setHasSearched(false)
   }
 
   const infraChoiceValue = useMemo(
@@ -313,6 +334,7 @@ export default function DetailSearch() {
   async function onSearch() {
     setIsLoading(true)
     setError(null)
+    setHasSearched(true)
     try {
       const filters: RecommendationParams = {
         dwellingType: housingType,
@@ -334,15 +356,24 @@ export default function DetailSearch() {
         aiReasonMap.set(code, entry.aiPickReason?.trim() ?? '')
       })
 
-      const annotated = items.map((item) => {
-        const code = String(item.sigunguCode ?? '').trim()
-        const reason = aiReasonMap.get(code) ?? null
-        return {
-          ...item,
-          isAiPick: reason != null,
-          aiPickReason: reason
-        }
-      })
+      // 같은 시군구가 두 번 오면 AI Pick 매칭과 리스트 key가 어긋나므로 먼저 걸러 둔다
+      const seenCodes = new Set<string>()
+      const annotated = items
+        .filter((item) => {
+          const code = String(item.sigunguCode ?? '').trim()
+          if (seenCodes.has(code)) return false
+          seenCodes.add(code)
+          return true
+        })
+        .map((item) => {
+          const code = String(item.sigunguCode ?? '').trim()
+          const reason = aiReasonMap.get(code) ?? null
+          return {
+            ...item,
+            isAiPick: reason != null,
+            aiPickReason: reason
+          }
+        })
 
       const aiPickSet = new Set<string>()
       const aiPickItems: RegionRecommendation[] = []
@@ -375,138 +406,141 @@ export default function DetailSearch() {
 
   return (
     <div className="space-y-6">
-      <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-        <div className="border-b border-brand-100 bg-brand-50/60 px-5 py-4">
-          <h2 className="text-lg font-semibold text-gray-900">조건 설정</h2>
+      <header>
+        <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+          지역추천
+        </h1>
+        <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+          주거·직종·지원사업·인프라 조건을 설정하면 조건에 맞는 지역을 추천해
+          드립니다.
+        </p>
+      </header>
+      <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900 dark:shadow-none">
+        <div className="border-b border-brand-100 bg-brand-50/60 px-5 py-4 dark:border-gray-800 dark:bg-brand-950">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            조건 설정
+          </h2>
 
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             조건을 설정하고 검색해 주세요.
           </p>
         </div>
         <div className="p-5 md:p-6">
           {/* 주거 유형 */}
-          <div>
-            <h3 className="text-sm font-medium text-gray-600">주거 유형</h3>
+          <fieldset className="border-0 p-0">
+            <legend className="text-sm font-medium text-gray-600 dark:text-gray-300">
+              주거 유형
+            </legend>
             <div className="mt-3 flex flex-wrap gap-3">
               {HOUSING_OPTIONS.map((option) => {
                 const active = housingType === option.id
                 return (
-                  <button
-                    key={option.id}
-                    type="button"
-                    onClick={() => setHousingType(option.id)}
-                    className={`rounded-full border px-4 py-2 text-sm transition ${
-                      active
-                        ? 'border-brand-600 bg-brand-50 text-brand-700'
-                        : 'border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50'
-                    }`}
-                  >
-                    {option.label}
-                  </button>
+                  <label key={option.id} className="cursor-pointer">
+                    <input
+                      type="radio"
+                      name="dwellingType"
+                      value={String(option.id)}
+                      checked={active}
+                      onChange={() => setHousingType(option.id)}
+                      className="peer sr-only"
+                    />
+                    <span
+                      className={classNames(
+                        'flex min-h-11 items-center gap-1.5 rounded-full border px-4 py-2 text-sm transition',
+                        'peer-focus-visible:ring-2 peer-focus-visible:ring-brand-600/40 dark:peer-focus-visible:ring-brand-400/40',
+                        active
+                          ? 'border-brand-600 bg-brand-50 font-semibold text-brand-700 ring-1 ring-brand-600 dark:border-brand-400 dark:bg-brand-950 dark:text-brand-300 dark:ring-brand-400'
+                          : 'border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:border-gray-600 dark:hover:bg-gray-800'
+                      )}
+                    >
+                      {active && <span aria-hidden="true">✓</span>}
+                      {option.label}
+                    </span>
+                  </label>
                 )
               })}
             </div>
-          </div>
+          </fieldset>
 
           {/* 예산 버튼 */}
-          <div className="mt-6">
-            <h3 className="text-sm font-medium text-gray-600">예산</h3>
-            <p className="mt-1 text-xs text-gray-500">
+          <fieldset className="mt-6 border-0 p-0">
+            <legend className="text-sm font-medium text-gray-600 dark:text-gray-300">
+              예산
+            </legend>
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
               선택한 금액을 기준으로 추천 점수를 계산합니다.
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               {priceOptions.map((option) => {
                 const active = selectedPrice === option.value
                 return (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => setSelectedPrice(option.value)}
-                    className={`rounded-lg px-4 py-2 text-sm transition ${
-                      active
-                        ? 'border border-brand-600 bg-brand-50 text-brand-700 shadow-sm'
-                        : 'border border-gray-300 bg-white text-gray-700 hover:border-gray-400 hover:bg-gray-50'
-                    }`}
-                  >
-                    {option.label}
-                  </button>
+                  <label key={option.value} className="cursor-pointer">
+                    <input
+                      type="radio"
+                      name="price"
+                      value={option.value}
+                      checked={active}
+                      onChange={() => setSelectedPrice(option.value)}
+                      className="peer sr-only"
+                    />
+                    <span
+                      className={classNames(
+                        'flex min-h-11 items-center gap-1.5 rounded-lg border px-4 py-2 text-sm tabular-nums transition',
+                        'peer-focus-visible:ring-2 peer-focus-visible:ring-brand-600/40 dark:peer-focus-visible:ring-brand-400/40',
+                        active
+                          ? 'border-brand-600 bg-brand-50 font-semibold text-brand-700 shadow-sm ring-1 ring-brand-600 dark:border-brand-400 dark:bg-brand-950 dark:text-brand-300 dark:shadow-none dark:ring-brand-400'
+                          : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:border-gray-600 dark:hover:bg-gray-800'
+                      )}
+                    >
+                      {active && <span aria-hidden="true">✓</span>}
+                      {option.label}
+                    </span>
+                  </label>
                 )
               })}
             </div>
-          </div>
+          </fieldset>
 
-          <div className="my-6 border-t border-gray-100" />
+          <div className="my-6 border-t border-gray-100 dark:border-gray-800" />
 
           {/* 직종 자동완성 */}
-          <div>
-            <h3 className="text-sm font-medium text-gray-600">희망 직종</h3>
-            <div className="mt-3 max-w-xl">
-              <div className="relative">
-                <input
-                  type="text"
-                  value={occupationQuery}
-                  onChange={(e) => {
-                    setOccupationQuery(e.target.value)
-                    setSelectedJobMid('')
-                    setSelectedJobTop('')
-                  }}
-                  onFocus={() => setJobInputFocused(true)}
-                  onBlur={handleJobInputBlur}
-                  placeholder="직종명을 입력하세요"
-                  className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20"
-                />
-                {occupationQuery && (
-                  <button
-                    type="button"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => {
-                      setOccupationQuery('')
-                      setSelectedJobMid('')
-                      setSelectedJobTop('')
-                    }}
-                    className="absolute inset-y-0 right-3 flex items-center text-gray-400 hover:text-gray-600"
-                    aria-label="선택 해제"
-                  >
-                    ×
-                  </button>
-                )}
-                {jobInputFocused && filteredJobSuggestions.length > 0 && (
-                  <ul className="absolute z-10 mt-2 max-h-64 w-full overflow-auto rounded-lg border border-gray-200 bg-white shadow-lg">
-                    {filteredJobSuggestions.map((suggestion) => (
-                      <li key={suggestion.code}>
-                        <button
-                          type="button"
-                          onMouseDown={(e) => e.preventDefault()}
-                          onClick={() => handleSelectJobSuggestion(suggestion)}
-                          className="flex w-full items-center justify-between px-4 py-2 text-left text-sm hover:bg-gray-50"
-                        >
-                          <span>{suggestion.name}</span>
-                          <span className="text-xs text-gray-400">
-                            {suggestion.topName}
-                          </span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-              {jobFiltersError && (
-                <p className="mt-2 text-xs text-red-500">{jobFiltersError}</p>
-              )}
-              {selectedJobTopName && (
-                <p className="mt-2 text-xs text-gray-500">
-                  선택된 직종 대분류: {selectedJobTopName}
-                </p>
-              )}
-            </div>
+          <div className="max-w-xl">
+            <Combobox
+              label="희망 직종"
+              query={occupationQuery}
+              onQueryChange={handleJobQueryChange}
+              options={jobOptions}
+              onSelect={handleSelectJobOption}
+              onCommit={handleJobCommit}
+              onClear={clearJobSelection}
+              placeholder="직종명을 입력하세요"
+              description="직종명을 입력한 뒤 방향키와 Enter 키로 목록에서 선택해 주세요."
+              emptyMessage={
+                jobSuggestions.length > 0
+                  ? '입력하신 검색어와 일치하는 직종이 없습니다.'
+                  : undefined
+              }
+            />
+            {jobFiltersError && (
+              <p className="mt-2 text-xs text-red-600 dark:text-red-400">
+                {jobFiltersError}
+              </p>
+            )}
+            {selectedJobTopName && (
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                선택된 직종 대분류: {selectedJobTopName}
+              </p>
+            )}
           </div>
 
-          <div className="my-6 border-t border-gray-100" />
+          <div className="my-6 border-t border-gray-100 dark:border-gray-800" />
 
           {/* 지원사업 주요 카테고리 */}
-          <div>
-            <h3 className="text-sm font-medium text-gray-600">지원사업</h3>
-            <p className="mt-1 text-xs text-gray-500">
+          <fieldset className="border-0 p-0">
+            <legend className="text-sm font-medium text-gray-600 dark:text-gray-300">
+              지원사업
+            </legend>
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
               필요한 지원사업을 자유롭게 선택하세요. (중복 선택 가능)
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
@@ -517,11 +551,12 @@ export default function DetailSearch() {
                     key={tag.code}
                     type="button"
                     onClick={() => toggleSupportTagCode(tag.code)}
-                    className={`rounded-full border px-4 py-2 text-sm transition ${
+                    className={classNames(
+                      'inline-flex min-h-11 items-center rounded-full border px-4 py-2 text-sm transition',
                       active
-                        ? 'border-brand-600 bg-brand-50 text-brand-700 shadow-sm'
-                        : 'border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50'
-                    }`}
+                        ? 'border-brand-600 bg-brand-50 text-brand-700 shadow-sm dark:border-brand-400 dark:bg-brand-950 dark:text-brand-300 dark:shadow-none'
+                        : 'border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:border-gray-600 dark:hover:bg-gray-800'
+                    )}
                     aria-pressed={active}
                   >
                     #{tag.name}
@@ -531,7 +566,7 @@ export default function DetailSearch() {
               {supportTagsLoading && (
                 <LoadingIndicator
                   compact
-                  className="text-xs text-gray-500"
+                  className="text-xs text-gray-500 dark:text-gray-400"
                   messages={[
                     '지원 정책 태그를 불러오는 중입니다...',
                     '지역별 지원사업 분류를 준비하고 있어요.'
@@ -540,64 +575,69 @@ export default function DetailSearch() {
                 />
               )}
               {!supportTagsLoading && supportTagsError && (
-                <span className="text-xs text-red-500">{supportTagsError}</span>
+                <span className="text-xs text-red-600 dark:text-red-400">
+                  {supportTagsError}
+                </span>
               )}
               {!supportTagsLoading &&
                 !supportTagsError &&
                 supportTags.length === 0 && (
-                  <span className="text-xs text-gray-400">
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
                     표시할 지원정책 태그가 없습니다.
                   </span>
                 )}
             </div>
-          </div>
+          </fieldset>
 
-          <div className="my-6 border-t border-gray-100" />
+          <div className="my-6 border-t border-gray-100 dark:border-gray-800" />
 
           {/* 인프라 대분류 선택 */}
-          <div>
-            <h3 className="text-sm font-medium text-gray-600">인프라</h3>
-            <p className="mt-1 text-xs text-gray-500">
+          <fieldset className="border-0 p-0">
+            <legend className="text-sm font-medium text-gray-600 dark:text-gray-300">
+              인프라
+            </legend>
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
               필요한 인프라를 자유롭게 선택하세요. (중복 선택 가능)
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
-              {INFRA_MAJORS.map((option, idx) => {
+              {INFRA_MAJORS.map((option) => {
                 const active = infraChoices.includes(option.id)
-                const bitValue = 1 << (INFRA_MAJORS.length - 1 - idx)
                 return (
                   <button
                     key={option.id}
                     type="button"
                     onClick={() => toggleInfraChoice(option.id)}
-                    className={`rounded-full border px-4 py-2 text-sm transition ${
+                    className={classNames(
+                      'inline-flex min-h-11 items-center rounded-full border px-4 py-2 text-sm transition',
                       active
-                        ? 'border-brand-600 bg-brand-50 text-brand-700 shadow-sm'
-                        : 'border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50'
-                    }`}
+                        ? 'border-brand-600 bg-brand-50 text-brand-700 shadow-sm dark:border-brand-400 dark:bg-brand-950 dark:text-brand-300 dark:shadow-none'
+                        : 'border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:border-gray-600 dark:hover:bg-gray-800'
+                    )}
                     aria-pressed={active}
-                    data-bit={bitValue}
                   >
                     #{option.label}
                   </button>
                 )
               })}
             </div>
-          </div>
+          </fieldset>
 
           <div className="mt-8 flex flex-wrap items-center justify-end gap-3">
             <button
               type="button"
               onClick={resetFilters}
-              className="rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm text-gray-700 transition hover:border-gray-400"
+              className="rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm text-gray-700 transition hover:border-gray-400 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:border-gray-600"
             >
               초기화
             </button>
             <button
               type="button"
               onClick={onSearch}
-              className="rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700"
+              disabled={isLoading}
+              aria-busy={isLoading}
+              className="rounded-lg bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-800 disabled:cursor-not-allowed disabled:bg-gray-500 disabled:hover:bg-gray-500 dark:bg-brand-400 dark:text-gray-950 dark:hover:bg-brand-300 dark:disabled:bg-gray-600 dark:disabled:text-gray-100 dark:disabled:hover:bg-gray-600"
             >
-              검색
+              {isLoading ? '검색 중...' : '검색'}
             </button>
           </div>
         </div>
@@ -615,15 +655,43 @@ export default function DetailSearch() {
             description="선택한 조건에 따라 추천을 산출하고 있습니다."
           />
         )}
-        {error && <p className="text-red-600">{error}</p>}
-        {!isLoading && !error && results.length === 0 && (
-          <p className="text-gray-500">
-            조건에 맞는 추천 결과를 검색해 주세요.
-          </p>
-        )}
+        {/* 검색 완료·실패를 스크린리더에 알린다. 로딩 문구는 회전하므로 이 영역 밖에 둔다 */}
+        <div aria-live="polite" className="space-y-3">
+          {!isLoading && error && (
+            <div
+              role="alert"
+              className="rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-950"
+            >
+              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+              <button
+                type="button"
+                onClick={onSearch}
+                className="mt-3 inline-flex min-h-11 items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 transition hover:border-gray-400 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:border-gray-600"
+              >
+                다시 시도
+              </button>
+            </div>
+          )}
+          {!isLoading && !error && results.length > 0 && (
+            <h2 className="text-lg font-semibold tabular-nums text-gray-900 dark:text-gray-100">
+              {results.length}개 지역을 찾았습니다.
+            </h2>
+          )}
+          {!isLoading && !error && results.length === 0 && hasSearched && (
+            <p className="text-gray-600 dark:text-gray-300">
+              조건에 맞는 지역을 찾지 못했습니다. 예산을 올리거나
+              인프라·지원사업 선택을 줄여 조건을 넓혀 보세요.
+            </p>
+          )}
+          {!isLoading && !error && !hasSearched && (
+            <p className="text-gray-600 dark:text-gray-300">
+              조건을 설정한 뒤 검색 버튼을 눌러 주세요.
+            </p>
+          )}
+        </div>
         {!isLoading &&
           !error &&
-          results.map((r, idx) => {
+          results.map((r) => {
             const fitJobCount = r.fitJobInfo?.count
             const jobsHighlight =
               !!selectedJobMid &&
@@ -653,7 +721,6 @@ export default function DetailSearch() {
               jeonseMid != null &&
               priceDiff <= tolerance
 
-            const key = `${r.sigunguCode}-${idx}`
             const canAdd =
               !!r.sigunguCode &&
               !compareItems.some(
@@ -661,7 +728,7 @@ export default function DetailSearch() {
               )
 
             return (
-              <div key={key} className="relative">
+              <div key={r.sigunguCode} className="relative">
                 <RegionCard
                   item={r}
                   metricsHighlight={{

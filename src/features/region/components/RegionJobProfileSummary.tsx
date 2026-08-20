@@ -52,37 +52,47 @@ export default function RegionJobProfileSummary({
 
   return (
     <section className="space-y-3">
-      <h2 className="text-lg font-semibold">지역 채용 프로필</h2>
-      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+      <h2 className="text-lg font-semibold dark:text-gray-100">
+        지역 채용 프로필
+      </h2>
+      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
-            <p className="text-xs text-gray-500">연봉 중앙값</p>
+          <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-800">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              연봉 중앙값
+            </p>
             {salaryMedianManwon === null ? (
-              <p className="mt-1 text-sm text-gray-400">집계 정보 없음</p>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                집계 정보 없음
+              </p>
             ) : (
-              <p className="mt-1 text-2xl font-semibold tabular-nums text-gray-900">
+              <p className="mt-1 text-2xl font-semibold tabular-nums text-gray-900 dark:text-gray-100">
                 {formatKRWMan(salaryMedianManwon)}
               </p>
             )}
           </div>
 
-          <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
-            <p className="text-xs text-gray-500">신입 채용 비율</p>
+          <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-800">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              신입 채용 비율
+            </p>
             {newcomerRatio === null || newcomerPercent === null ? (
-              <p className="mt-1 text-sm text-gray-400">집계 정보 없음</p>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                집계 정보 없음
+              </p>
             ) : (
               <>
-                <p className="mt-1 text-2xl font-semibold tabular-nums text-gray-900">
+                <p className="mt-1 text-2xl font-semibold tabular-nums text-gray-900 dark:text-gray-100">
                   {formatRatioPercent(newcomerRatio)}
                 </p>
                 {/* 바로 위 문단이 같은 수치를 읽어주므로 막대는 장식으로 둔다 */}
                 <div
                   aria-hidden="true"
-                  className="mt-2 h-2 w-full overflow-hidden rounded-full bg-gray-200"
+                  className="mt-2 h-2 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700"
                 >
                   {/* 채움 폭은 런타임 계산값이라 인라인 style로만 표현할 수 있다 */}
                   <div
-                    className="h-full rounded-full bg-brand-600"
+                    className="h-full rounded-full bg-brand-600 dark:bg-brand-300"
                     style={{ width: `${newcomerPercent}%` }}
                   />
                 </div>
@@ -93,7 +103,7 @@ export default function RegionJobProfileSummary({
 
         {topIndustries.length > 0 && (
           <div className="mt-5">
-            <h3 className="text-sm font-semibold text-gray-900">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
               주요 업종 Top {topIndustries.length}
             </h3>
             <ul className="mt-3 space-y-2">
@@ -112,16 +122,20 @@ export default function RegionJobProfileSummary({
 
                 return (
                   <li key={industry.name} className="flex items-center gap-3">
-                    <span className="w-24 shrink-0 truncate text-sm text-gray-700">
+                    {/* 좁은 화면에서는 잘릴 수 있으므로 전체 이름을 title로 남긴다 */}
+                    <span
+                      title={industry.name}
+                      className="w-24 shrink-0 truncate text-sm text-gray-700 dark:text-gray-200"
+                    >
                       {industry.name}
                     </span>
-                    <span className="h-2 flex-1 overflow-hidden rounded-full bg-gray-100">
+                    <span className="h-2 flex-1 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700">
                       <span
                         className="block h-full rounded-full bg-brand-400"
                         style={{ width: `${barPercent}%` }}
                       />
                     </span>
-                    <span className="shrink-0 text-xs tabular-nums text-gray-500">
+                    <span className="shrink-0 text-xs tabular-nums text-gray-500 dark:text-gray-400">
                       {formatNumberComma(industry.count)}건
                       {sharePercent ? ` · ${sharePercent}` : ''}
                     </span>
@@ -133,13 +147,16 @@ export default function RegionJobProfileSummary({
         )}
 
         {captionParts.length > 0 && (
-          <p className="mt-4 text-xs tabular-nums text-gray-500">
+          <p className="mt-4 text-xs tabular-nums text-gray-500 dark:text-gray-400">
             {captionParts.join(' · ')}
           </p>
         )}
+        {/* 신뢰도 경고는 지표보다 먼저 읽혀야 하므로 색이 아닌 문구로도 경고임을 밝힌다 */}
         {isLowConfidence && (
-          <p className="mt-1 text-xs text-gray-400">
-            표본이 적어 참고용 수치입니다.
+          <p className="mt-2 flex items-start gap-1.5 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
+            <span aria-hidden="true">⚠</span>
+            <span className="font-semibold">주의</span>
+            <span>표본이 적어 참고용 수치입니다.</span>
           </p>
         )}
       </div>
