@@ -1,0 +1,157 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-20T00:00:00.000Z",
+  "title": "Design System: ProvinceHow(지방어때)",
+  "extensions": {
+    "colorMeta": {
+      "brand-500": {
+        "role": "primary",
+        "displayName": "Open Sky Blue",
+        "canonical": "#3AA5E6",
+        "tonalRamp": ["#082B38", "#0D3D4F", "#155A7A", "#1E76A6", "#2793D3", "#3AA5E6", "#5CB6EC", "#84C9F1", "#ACDBF6", "#D5EEFB", "#EAF6FD"]
+      },
+      "neutral-500": {
+        "role": "neutral",
+        "displayName": "Cool Gray",
+        "canonical": "#6B7280",
+        "tonalRamp": ["#030712", "#111827", "#1F2937", "#374151", "#4B5563", "#6B7280", "#D1D5DB", "#E5E7EB", "#F9FAFB", "#FFFFFF"]
+      },
+      "state-error": {
+        "role": "error",
+        "displayName": "Alert Red",
+        "canonical": "#DC2626",
+        "tonalRamp": ["#7F1D1D", "#DC2626", "#FECACA", "#FEF2F2"]
+      },
+      "state-highlight": {
+        "role": "success",
+        "displayName": "Match Green",
+        "canonical": "#166534",
+        "tonalRamp": ["#14532D", "#166534", "#BBF7D0", "#DCFCE7", "#F0FDF4"]
+      }
+    },
+    "typographyMeta": {
+      "heading-lg": { "displayName": "Heading Large", "purpose": "페이지 최상단 제목(h1)." },
+      "heading-md": { "displayName": "Heading Medium", "purpose": "카드·섹션 제목(h2), 지역명." },
+      "body": { "displayName": "Body", "purpose": "본문, 버튼 라벨, 필터 칩 텍스트." },
+      "label": { "displayName": "Label", "purpose": "보조 캡션, 배지 라벨." }
+    },
+    "shadows": [
+      { "name": "resting", "value": "0 1px 2px 0 rgba(0,0,0,0.05)", "purpose": "기본 카드·패널의 평상시 표면(shadow-sm)." },
+      { "name": "emphasis", "value": "0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1)", "purpose": "AI Pick 콜아웃, 추천 이유 패널 등 의도적으로 강조하는 요소(shadow-md)." }
+    ],
+    "motion": [
+      { "name": "loading-rotate", "value": "rotate 1.2s linear infinite", "purpose": "로딩 스피너 회전. motion-reduce 시 정지." },
+      { "name": "ease-standard", "value": "all 0.2s ease (transition-colors/transition duration-200~300)", "purpose": "hover/active 색상·배경 전환의 기본 속도." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "가장 중요한 단일 액션(지역 상세로 이동, 신청 등)에 쓰는 채워진 버튼.",
+      "html": "<button class=\"ds-btn-primary\">지역 상세 보기</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 10px 20px; border-radius: 8px; border: none; background-color: #1E76A6; color: #FFFFFF; font-size: 0.875rem; font-weight: 600; transition: background-color 0.2s ease; cursor: pointer; } .ds-btn-primary:hover { background-color: #155A7A; } .ds-btn-primary:focus-visible { outline: 2px solid rgba(39,147,211,0.3); outline-offset: 2px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "부차적인 액션(취소, 뒤로가기)에 쓰는 아웃라인 버튼.",
+      "html": "<button class=\"ds-btn-secondary\">돌아가기</button>",
+      "css": ".ds-btn-secondary { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 10px 20px; border-radius: 8px; border: 1px solid #D1D5DB; background-color: #FFFFFF; color: #374151; font-size: 0.875rem; font-weight: 500; transition: border-color 0.2s ease; cursor: pointer; } .ds-btn-secondary:hover { border-color: #9CA3AF; } .ds-btn-secondary:focus-visible { outline: 2px solid rgba(39,147,211,0.3); outline-offset: 2px; }"
+    },
+    {
+      "name": "Filter Chip",
+      "kind": "chip",
+      "refersTo": "chip-idle",
+      "description": "조건 검색·지원 태그·인프라 필터에 쓰는 알약형 토글. 선택 여부를 색으로 표시한다.",
+      "html": "<div class=\"ds-chip-group\"><button class=\"ds-chip\">전체</button><button class=\"ds-chip ds-chip--active\">주거지원</button></div>",
+      "css": ".ds-chip-group { display: flex; flex-wrap: wrap; gap: 8px; } .ds-chip { display: inline-flex; align-items: center; min-height: 44px; padding: 8px 16px; border-radius: 9999px; border: 1px solid #D1D5DB; background-color: #FFFFFF; color: #374151; font-size: 0.875rem; transition: background-color 0.2s ease, border-color 0.2s ease; cursor: pointer; } .ds-chip--active { border-color: #2793D3; background-color: #EAF6FD; color: #1E76A6; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); } .ds-chip:focus-visible { outline: 2px solid rgba(39,147,211,0.4); outline-offset: 2px; }"
+    },
+    {
+      "name": "Region Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "지역 하나를 요약해서 보여주는 기본 카드. 클릭 가능하면 hover에서 반응한다.",
+      "html": "<article class=\"ds-card ds-card--interactive\"><h3 class=\"ds-card-title\">경기도 · 수원시</h3><div class=\"ds-card-metrics\"><div class=\"ds-metric\"><p class=\"ds-metric-label\">전체 일자리</p><p class=\"ds-metric-value\">1,204</p></div></div></article>",
+      "css": ".ds-card { border-radius: 16px; border: 1px solid #E5E7EB; background-color: #FFFFFF; padding: 20px; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease; } .ds-card--interactive { cursor: pointer; } .ds-card--interactive:hover { border-color: #ACDBF6; background-color: #F9FAFB; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1); } .ds-card-title { font-size: 1.125rem; font-weight: 600; color: #111827; margin: 0 0 12px; } .ds-card-metrics { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; } .ds-metric { border-radius: 8px; border: 1px solid #F3F4F6; background-color: #F9FAFB; padding: 12px; } .ds-metric-label { font-size: 0.75rem; color: #6B7280; margin: 0; } .ds-metric-value { font-size: 0.875rem; font-weight: 600; color: #111827; margin: 4px 0 0; font-variant-numeric: tabular-nums; }"
+    },
+    {
+      "name": "AI Pick Badge",
+      "kind": "custom",
+      "refersTo": "badge-ai-pick",
+      "description": "시스템에서 유일하게 그라데이션을 쓰는 시그니처 배지. AI가 고른 지역에만 붙는다.",
+      "html": "<span class=\"ds-badge-ai-pick\">AI Pick</span>",
+      "css": ".ds-badge-ai-pick { display: inline-flex; align-items: center; border-radius: 8px; padding: 6px 12px; font-size: 0.875rem; font-weight: 600; color: #FFFFFF; background: linear-gradient(to right, #0D3D4F, #155A7A, #1E76A6); }"
+    },
+    {
+      "name": "Match Highlight Badge",
+      "kind": "chip",
+      "refersTo": "badge-highlight",
+      "description": "조건 일치 지표에 붙는 배지. 색만이 아니라 체크 아이콘과 문구를 함께 노출한다.",
+      "html": "<span class=\"ds-badge-highlight\"><svg aria-hidden=\"true\" width=\"12\" height=\"12\" viewBox=\"0 0 20 20\" fill=\"none\"><path d=\"M4 10.5l3.5 3.5L16 5\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg>조건 일치</span>",
+      "css": ".ds-badge-highlight { display: inline-flex; align-items: center; gap: 4px; border-radius: 9999px; background-color: #DCFCE7; color: #166534; padding: 2px 8px; font-size: 0.75rem; font-weight: 500; }"
+    },
+    {
+      "name": "Empty State",
+      "kind": "custom",
+      "refersTo": "empty-state",
+      "description": "아직 데이터가 없거나 조건에 맞는 결과가 없을 때 쓰는 점선 컨테이너.",
+      "html": "<div class=\"ds-empty-state\">조건에 맞는 지역이 없어요. 필터를 조정해 보세요.</div>",
+      "css": ".ds-empty-state { border-radius: 16px; border: 1px dashed #E5E7EB; background-color: #F9FAFB; padding: 24px; text-align: center; font-size: 0.875rem; color: #6B7280; }"
+    },
+    {
+      "name": "Error State",
+      "kind": "custom",
+      "refersTo": "error-state",
+      "description": "요청 실패 시 쓰는 경고 컨테이너. role=alert와 함께 쓴다.",
+      "html": "<div class=\"ds-error-state\" role=\"alert\">정보를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.</div>",
+      "css": ".ds-error-state { border-radius: 16px; border: 1px solid #FECACA; background-color: #FEF2F2; padding: 16px; font-size: 0.875rem; color: #DC2626; }"
+    },
+    {
+      "name": "Loading Indicator",
+      "kind": "custom",
+      "refersTo": "loading-indicator",
+      "description": "이중 원 스피너와 안내 문구. 모션 축소 설정을 존중한다.",
+      "html": "<div class=\"ds-loading\" role=\"status\"><span class=\"ds-loading-ring\"></span><span class=\"ds-loading-spin\"></span><p class=\"ds-loading-text\">데이터를 정리하고 있어요...</p></div>",
+      "css": ".ds-loading { display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center; font-size: 0.875rem; color: #4B5563; } .ds-loading-ring, .ds-loading-spin { position: absolute; width: 56px; height: 56px; border-radius: 9999px; border: 2px solid transparent; } .ds-loading-ring { border-color: #D5EEFB; } .ds-loading-spin { border-color: #3AA5E6; border-top-color: transparent; animation: ds-loading-rotate 1.2s linear infinite; } @keyframes ds-loading-rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } } @media (prefers-reduced-motion: reduce) { .ds-loading-spin { animation: none; } }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Open Sky Compass",
+    "overview": "이 시스템은 낯선 지역을 탐색하는 사람에게 방향을 제시하는 나침반처럼 움직인다. 주색인 하늘색(Open Sky Blue)은 개방감과 신뢰를 동시에 전달하고, 나머지 화면은 회색과 흰색의 평면 위에서 절제되어 있다. 사용자는 지도와 조건 검색을 통해 탐색하고, 시스템은 꼭 필요한 순간(선택된 지역, AI 추천, 조건 일치)에만 색과 입체감으로 응답한다.\n\n전체 톤은 친근하고 편안하면서도 명료하고 효율적이다. 청년 대상 서비스이지만 장난스럽지 않고, 정보 밀도가 높은 화면(지역 비교, 조건 검색 필터)에서도 군더더기 없이 스캔할 수 있어야 한다. 화려한 그라데이션과 장식은 명시적으로 피한다 — AI Pick 콜아웃의 브랜드 그라데이션은 이 원칙의 유일한 기존 예외이자 시그니처 요소이며, 새로운 장식적 그라데이션을 추가하는 근거로 쓰지 않는다.",
+    "keyCharacteristics": [
+      "평상시엔 평면적(플랫), 강조가 필요할 때만 입체감을 준다",
+      "브랜드 하늘색은 액션과 활성 상태에만 절제해서 쓴다",
+      "모든 색상 유틸리티는 라이트/다크 모드 짝을 항상 함께 가진다",
+      "숫자(개수·금액·점수)는 항상 tabular-nums로 정렬해 비교가 쉬운 표 형태를 이룬다"
+    ],
+    "rules": [
+      { "name": "The Sparse Accent Rule", "body": "브랜드 하늘색은 화면의 넓은 영역을 채우지 않는다. 버튼·활성 칩·선택된 지도 영역·포커스 링처럼 \"지금 상호작용 가능하거나 선택됨\"을 뜻하는 자리에만 나타난다.", "section": "colors" },
+      { "name": "The No-Color-Only-Meaning Rule", "body": "상태(조건 일치, 오류)는 색만으로 전달하지 않는다. 초록 배경에는 체크 아이콘과 문구를 함께 쓰고, 오류에는 role=alert와 텍스트 메시지를 함께 쓴다.", "section": "colors" },
+      { "name": "The Tabular Numbers Rule", "body": "개수·금액·점수 등 비교 대상이 되는 모든 숫자는 tabular-nums를 써서 자릿수가 세로로 정렬되게 한다.", "section": "typography" },
+      { "name": "The Flat-at-Rest Rule", "body": "평상시엔 평면적이고, 강조가 필요할 때만 뜬다. 새 컴포넌트에 그림자를 추가하기 전에 AI Pick급으로 강조되어야 하는지 먼저 확인한다.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do 브랜드 하늘색을 액션·활성 상태·AI Pick에만 절제해서 쓴다(The Sparse Accent Rule).",
+      "Do 카드·패널은 평상시 shadow-sm + 1px 테두리로 평면을 유지하고, 진짜 강조가 필요할 때만 shadow-md 이상으로 올린다(The Flat-at-Rest Rule).",
+      "Do 비교·집계되는 모든 숫자에 tabular-nums를 적용한다(The Tabular Numbers Rule).",
+      "Do 모든 색상 유틸리티에 다크 모드 짝(dark:)을 함께 작성한다.",
+      "Do 필터 칩·버튼 등 탭 가능한 요소에 min-h-11(44px) 터치 타겟을 유지한다.",
+      "Do 상태 전달에는 색과 텍스트/아이콘을 함께 쓴다(The No-Color-Only-Meaning Rule).",
+      "Do 빈 상태는 border-dashed bg-gray-50, 오류는 role=alert + bg-red-50 text-red-600로 구분해서 표현한다."
+    ],
+    "donts": [
+      "Don't AI Pick 콜아웃 밖에서 새로운 장식적 그라데이션을 추가하지 않는다.",
+      "Don't 평상시 카드에 shadow-md 이상을 기본값으로 주지 않는다.",
+      "Don't brand 스케일 밖의 새 액센트 색상을 임의로 추가하지 않는다.",
+      "Don't 지도 인터랙션에 그림자나 장식적 테두리를 더하지 않는다."
+    ]
+  }
+}
