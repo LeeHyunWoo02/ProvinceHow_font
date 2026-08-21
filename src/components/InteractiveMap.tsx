@@ -284,7 +284,7 @@ export default function InteractiveMap({
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 800 1000"
-            className="size-full"
+            className="size-full [-webkit-tap-highlight-color:transparent]"
             preserveAspectRatio="xMidYMid meet"
             ref={svgRef}
             role="group"
@@ -306,7 +306,7 @@ export default function InteractiveMap({
                           className={classNames(
                             'cursor-pointer fill-gray-300 stroke-white stroke-[0.5] transition-colors dark:fill-gray-700 dark:stroke-gray-900',
                             '[@media(hover:hover)]:hover:fill-brand-400',
-                            'focus-visible:stroke-brand-700 focus-visible:stroke-2 dark:focus-visible:stroke-brand-300'
+                            'outline-none focus-visible:stroke-brand-700 focus-visible:stroke-2 dark:focus-visible:stroke-brand-300'
                           )}
                           onMouseEnter={() => setHoveredId(code)}
                           onMouseMove={handleMouseMove}
@@ -338,7 +338,7 @@ export default function InteractiveMap({
                             isActive
                               ? 'fill-brand-500 dark:fill-brand-300'
                               : 'fill-gray-300 [@media(hover:hover)]:hover:fill-brand-400 dark:fill-gray-700',
-                            'focus-visible:stroke-brand-700 focus-visible:stroke-2 dark:focus-visible:stroke-brand-300'
+                            'outline-none focus-visible:stroke-brand-700 focus-visible:stroke-2 dark:focus-visible:stroke-brand-300'
                           )}
                           onMouseEnter={() => setHoveredId(code)}
                           onMouseMove={handleMouseMove}
