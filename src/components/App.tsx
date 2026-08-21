@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import Navbar from 'components/Navbar'
 import LoadingIndicator from 'components/LoadingIndicator'
+import ServiceNoticeModal from 'shared/components/ServiceNoticeModal'
 
 // 라우트 단위 코드 스플리팅: 첫 화면에 필요 없는 페이지는 별도 청크로 분리한다.
 const MapSearch = lazy(() => import('pages/MapSearch'))
@@ -33,6 +34,7 @@ export default function App() {
           </Routes>
         </Suspense>
       </main>
+      <ServiceNoticeModal />
     </div>
   )
 }
